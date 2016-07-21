@@ -90,3 +90,6 @@ ENV/
 
 # Zip files
 *.zip
+
+# Sqlite databases
+*.sqlite3

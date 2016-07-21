@@ -15,16 +15,20 @@ http://www.osedu.org/licenses/ECL-2.0
 	permissions and limitations under the License.
 """
 
-import csv, datetime, errno, getopt, io, os, sqlite3, sys, zipfile
+import csv, datetime, errno, getopt, io, os, re, sqlite3, sys, zipfile
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 def main(argv):
+    # If start and end date aren't specified we'll use the first and last days of the previous month
+    startDate = (datetime.date.today().replace(day=1) - datetime.timedelta(days=1)).replace(day=1).strftime('%Y-%m-%d')
+    endDate = (datetime.date.today().replace(day=1) - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+
     # Set up command line parsing
-    usage = sys.argv[0] + ' -i <inputfile>'
+    usage = sys.argv[0] + ' -i <inputfile> -s <YYYY-MM-DD> -e <YYYY-MM-DD>'
     try:
-        opts, args = getopt.getopt(argv, "hi:", ['ifile'])
+        opts, args = getopt.getopt(argv, "hi:s:e:", ['ifile', 'startDate', 'endDate'])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -37,6 +41,18 @@ def main(argv):
             sys.exit()
         elif opt == '-i':
             inputfile = arg
+        elif opt == '-s':
+            if re.fullmatch('\d{4}-\d{2}-\d{2}', arg):
+                startDate = arg
+            else:
+                eprint('Dates should be in the format YYYY-MM-DD')
+                sys.exit(2)
+        elif opt == '-e':
+            if re.fullmatch('\d{4}-\d{2}-\d{2}', arg):
+                endDate = arg
+            else:
+                eprint('Dates should be in the format YYYY-MM-DD')
+                sys.exit(2)
 
     # Make the results dir
     resultspath = os.path.dirname(os.path.realpath(__file__)) + '/results'
@@ -68,10 +84,9 @@ def main(argv):
 
         db.commit()
 
-    # TODO add start and end date to filename
-    with open(resultspath + '/report.csv', 'w') as reportfile:
+    with open('{0}/report.{1}.{2}.csv'.format(resultspath, startDate, endDate), 'w') as reportfile:
         writer = csv.writer(reportfile)
-        cur.execute('SELECT courses.course_name, count(course_memberships.gatech_user_id) AS members FROM courses JOIN course_memberships ON courses.course_id = course_memberships.course_id GROUP BY courses.course_id;')
+        cur.execute('SELECT courses.course_name, count(course_memberships.gatech_user_id) AS members FROM courses JOIN course_memberships ON courses.course_id = course_memberships.course_id WHERE course_memberships.course_membership_ts BETWEEN ? AND ? GROUP BY courses.course_id;', (startDate, endDate))
         writer.writerow([d[0] for d in cur.description])
         writer.writerows(cur.fetchall())
 

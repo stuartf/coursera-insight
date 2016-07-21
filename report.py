@@ -45,8 +45,12 @@ def main(argv):
 
         db.commit()
 
-    cur.execute('SELECT course_name FROM courses;')
-    print(cur.fetchall())
+    # TODO add start and end date to filename
+    with open('report.csv', 'w') as reportfile:
+        writer = csv.writer(reportfile)
+        cur.execute('SELECT courses.course_name, count(course_memberships.gatech_user_id) AS members FROM courses JOIN course_memberships ON courses.course_id = course_memberships.course_id GROUP BY courses.course_id;')
+        writer.writerow([d[0] for d in cur.description])
+        writer.writerows(cur.fetchall())
 
 def parse(name, cur, zipfile):
     """Extract a csv from the zip and read it into a table"""

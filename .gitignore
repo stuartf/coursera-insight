@@ -91,5 +91,5 @@ ENV/
 # Zip files
 *.zip
 
-# Sqlite databases
-*.sqlite3
+# Results dir
+results/

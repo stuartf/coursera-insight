@@ -1,6 +1,21 @@
 #!/usr/bin/env python3
 
-import csv, datetime, getopt, io, os, sqlite3, sys, zipfile
+"""
+        Copyright 2016 Stuart Freeman Licensed under the
+	Educational Community License, Version 2.0 (the "License"); you may
+	not use this file except in compliance with the License. You may
+	obtain a copy of the License at
+
+http://www.osedu.org/licenses/ECL-2.0
+
+	Unless required by applicable law or agreed to in writing,
+	software distributed under the License is distributed on an "AS IS"
+	BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+	or implied. See the License for the specific language governing
+	permissions and limitations under the License.
+"""
+
+import csv, datetime, errno, getopt, io, os, sqlite3, sys, zipfile
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -23,9 +38,17 @@ def main(argv):
         elif opt == '-i':
             inputfile = arg
 
-    dbfile = os.path.dirname(os.path.realpath(__file__)) + '/coursera.sqlite3'
+    # Make the results dir
+    resultspath = os.path.dirname(os.path.realpath(__file__)) + '/results'
+    try:
+        os.makedirs(resultspath)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+
+    dbfile = resultspath + '/coursera.sqlite3'
     dbExists = os.path.isfile(dbfile)
-    dbOld = getFileModDate(inputfile) > getFileModDate(dbfile)
+    dbOld = getFileModDate(inputfile) > getFileModDate(dbfile) if dbExists else False
 
     # Our cached DB is old, delete it so we can rebuild
     if dbOld:
@@ -46,7 +69,7 @@ def main(argv):
         db.commit()
 
     # TODO add start and end date to filename
-    with open('report.csv', 'w') as reportfile:
+    with open(resultspath + '/report.csv', 'w') as reportfile:
         writer = csv.writer(reportfile)
         cur.execute('SELECT courses.course_name, count(course_memberships.gatech_user_id) AS members FROM courses JOIN course_memberships ON courses.course_id = course_memberships.course_id GROUP BY courses.course_id;')
         writer.writerow([d[0] for d in cur.description])

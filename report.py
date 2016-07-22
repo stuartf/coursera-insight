@@ -86,8 +86,8 @@ def main(argv):
         cur.execute('CREATE INDEX course_idx2 ON course_memberships(course_id);')
         cur.execute('CREATE INDEX course_idx3 ON course_grades(course_id);')
         cur.execute('CREATE INDEX date_idx1 ON course_memberships(course_membership_ts);')
-        cur.execute('CREATE VIEW payment_count (course_id, paid) AS SELECT course_id, count(course_id) FROM users_courses__certificate_payments GROUP BY course_id;')
-        cur.execute('CREATE VIEW completed_count (course_id, completed) AS SELECT course_id, count(course_id) FROM course_grades WHERE course_passing_state_id="1" OR course_passing_state_id="2" GROUP BY course_id')
+        cur.execute('CREATE VIEW payment_count AS SELECT course_id, count(course_id) AS paid FROM users_courses__certificate_payments GROUP BY course_id;')
+        cur.execute('CREATE VIEW completed_count AS SELECT course_id, count(course_id) AS completed FROM course_grades WHERE course_passing_state_id="1" OR course_passing_state_id="2" GROUP BY course_id')
         db.commit()
 
     with open('{0}/report.{1}.{2}.csv'.format(resultspath, startDate, endDate), 'w') as reportfile:

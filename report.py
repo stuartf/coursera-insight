@@ -86,8 +86,6 @@ def main(argv):
         cur.execute('CREATE INDEX course_idx2 ON course_memberships(course_id);')
         cur.execute('CREATE INDEX course_idx3 ON course_grades(course_id);')
         cur.execute('CREATE INDEX date_idx1 ON course_memberships(course_membership_ts);')
-        cur.execute('CREATE VIEW payment_count AS SELECT course_id, count(course_id) AS paid FROM users_courses__certificate_payments GROUP BY course_id;')
-        cur.execute('CREATE VIEW completed_count AS SELECT course_id, count(course_id) AS completed FROM course_grades WHERE course_passing_state_id="1" OR course_passing_state_id="2" GROUP BY course_id')
         db.commit()
 
     with open('{0}/report.{1}.{2}.csv'.format(resultspath, startDate, endDate), 'w') as reportfile:
@@ -95,13 +93,17 @@ def main(argv):
         cur.execute("""SELECT courses.course_name,
         count(course_memberships.gatech_user_id) AS members,
         count(CASE course_memberships.course_membership_role WHEN 'LEARNER' THEN 1 ELSE null END) AS active,
-        payment_count.paid AS paid,
-        completed_count.completed AS completed
+        payments.paid AS paid,
+        completed.completed AS completed
         FROM courses
                 JOIN course_memberships ON courses.course_id = course_memberships.course_id
-                JOIN payment_count ON courses.course_id = payment_count.course_id
-                JOIN completed_count ON courses.course_id = completed_count.course_id
-                WHERE course_memberships.course_membership_ts BETWEEN ? AND ? GROUP BY courses.course_id;""", (startDate, endDate))
+                JOIN (
+                    SELECT course_memberships.course_id, count(course_memberships.course_id) AS paid FROM users_courses__certificate_payments JOIN course_memberships ON users_courses__certificate_payments.course_id = course_memberships.course_id AND users_courses__certificate_payments.gatech_user_id = course_memberships.gatech_user_id WHERE course_membership_ts BETWEEN ? AND ? GROUP BY course_memberships.course_id
+                ) AS payments ON courses.course_id = payments.course_id
+                JOIN (
+                    SELECT course_grades.course_id, count(course_memberships.course_id) AS completed FROM course_grades JOIN course_memberships ON course_grades.course_id = course_memberships.course_id AND course_grades.gatech_user_id = course_memberships.gatech_user_id WHERE (course_grades.course_passing_state_id = '1' OR course_grades.course_passing_state_id = '2') AND course_memberships.course_membership_ts BETWEEN ? AND ? GROUP BY course_memberships.course_id
+                ) AS completed ON courses.course_id = completed.course_id
+                WHERE course_memberships.course_membership_ts BETWEEN ? AND ? GROUP BY courses.course_id;""", (startDate, endDate, startDate, endDate, startDate, endDate))
         writer.writerow([d[0] for d in cur.description])
         writer.writerows(cur.fetchall())
 

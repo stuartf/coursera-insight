@@ -98,10 +98,10 @@ def main(argv):
         FROM courses
                 JOIN course_memberships ON courses.course_id = course_memberships.course_id
                 JOIN (
-                    SELECT course_memberships.course_id, count(course_memberships.course_id) AS paid FROM users_courses__certificate_payments JOIN course_memberships ON users_courses__certificate_payments.course_id = course_memberships.course_id AND users_courses__certificate_payments.gatech_user_id = course_memberships.gatech_user_id WHERE course_membership_ts BETWEEN ? AND ? GROUP BY course_memberships.course_id
+                    SELECT course_memberships.course_id, count(distinct course_memberships.gatech_user_id) AS paid FROM users_courses__certificate_payments JOIN course_memberships ON users_courses__certificate_payments.course_id = course_memberships.course_id AND users_courses__certificate_payments.gatech_user_id = course_memberships.gatech_user_id WHERE course_membership_ts BETWEEN ? AND ? GROUP BY course_memberships.course_id
                 ) AS payments ON courses.course_id = payments.course_id
                 JOIN (
-                    SELECT course_grades.course_id, count(course_memberships.course_id) AS completed FROM course_grades JOIN course_memberships ON course_grades.course_id = course_memberships.course_id AND course_grades.gatech_user_id = course_memberships.gatech_user_id WHERE (course_grades.course_passing_state_id = '1' OR course_grades.course_passing_state_id = '2') AND course_memberships.course_membership_ts BETWEEN ? AND ? GROUP BY course_memberships.course_id
+                    SELECT course_grades.course_id, count(distinct course_memberships.gatech_user_id) AS completed FROM course_grades JOIN course_memberships ON course_grades.course_id = course_memberships.course_id AND course_grades.gatech_user_id = course_memberships.gatech_user_id WHERE (course_grades.course_passing_state_id = '1' OR course_grades.course_passing_state_id = '2') AND course_memberships.course_membership_ts BETWEEN ? AND ? GROUP BY course_memberships.course_id
                 ) AS completed ON courses.course_id = completed.course_id
                 WHERE course_memberships.course_membership_ts BETWEEN ? AND ? GROUP BY courses.course_id;""", (startDate, endDate, startDate, endDate, startDate, endDate))
         writer.writerow([d[0] for d in cur.description])

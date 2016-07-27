@@ -91,7 +91,7 @@ def main(argv):
     with open('{0}/report.{1}.{2}.csv'.format(resultspath, startDate, endDate), 'w') as reportfile:
         writer = csv.writer(reportfile)
         cur.execute("""SELECT courses.course_name,
-        count(course_memberships.gatech_user_id) AS members,
+        count(distinct course_memberships.gatech_user_id) AS members,
         count(CASE course_memberships.course_membership_role WHEN 'LEARNER' THEN 1 ELSE null END) AS active,
         payments.paid AS paid,
         completed.completed AS completed

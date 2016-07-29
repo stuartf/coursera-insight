@@ -64,7 +64,11 @@ def main(argv):
 
     dbfile = resultspath + '/coursera.sqlite3'
     dbExists = os.path.isfile(dbfile)
-    dbOld = getFileModDate(inputfile) > getFileModDate(dbfile) if dbExists else False
+    try:
+        dbOld = getFileModDate(inputfile) > getFileModDate(dbfile) if dbExists else False
+    except FileNotFoundError:
+        eprint('No such file: ' + inputfile)
+        sys.exit(2)
 
     # Our cached DB is old, delete it so we can rebuild
     if dbOld:
